@@ -382,10 +382,10 @@
           <div class="row g-0">
             ${movie['Picture'] ? `<div class="col-md-4 text-center p-3">
               <img src="${movie['Picture']}" class="img-fluid rounded border">
-              ${(movie['Comments'] && movie['Comments'].trim() !== "")
-              ? `<div class="mt-3"><button class="btn btn-danger" onclick="openVideoModal('${movie['Comments']}')"><i class="fab fa-youtube"></i> Trailer</button></div>`
-              : `<div class="mt-3"><a href="https://www.youtube.com/results?search_query=${encodeURIComponent((movie['OriginalTitle'] || '') + ' (' + (movie['Year'] || '') + ') trailer latino')}" target="_blank" class="btn btn-danger"><i class="fab fa-youtube"></i> Trailer</a></div>`
-            }
+				${(movie['Comments'] && movie['Comments'].trim() !== "")
+				? `<div class="mt-3"><button class="btn btn-danger btn-trailer" data-trailer="${movie['Comments'].trim()}"><i class="fab fa-youtube"></i> Trailer</button></div>`
+				: `<div class="mt-3"><a href="https://www.youtube.com/results?search_query=${encodeURIComponent((movie['OriginalTitle'] || '') + ' (' + (movie['Year'] || '') + ') trailer latino')}" target="_blank" class="btn btn-danger"><i class="fab fa-youtube"></i> Trailer</a></div>`
+				}
             </div>` : ''}
             <div class="${movie['Picture'] ? 'col-md-8' : 'col-12'}">
               <div class="card-body">
