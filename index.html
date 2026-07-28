@@ -451,12 +451,23 @@
           .then(data => {
             moviesData = Papa.parse(data, { header: true, skipEmptyLines: true }).data;
             
-            // Nettoyage simple et sécurisé des espaces et des guillemets
-            moviesData.forEach(movie => {
-              if (movie['Comments']) {
-                movie['Comments'] = movie['Comments'].replace(/['"\r\n]/g, '').trim();
-              }
+            // Affichage de contrôle dans la console pour chaque film
+            moviesData.forEach((movie, idx) => {
+              console.log(`Film ${idx + 1} (${movie['TranslatedTitle']}) - ID Trailer :`, movie['Comments']);
             });
+
+            filteredMovies = moviesData; 
+            displayMovies(currentPage, filteredMovies); 
+          })
+          .catch(error => {
+            console.error(error);
+            const container = document.querySelector('.container');
+            container.innerHTML = `<div class="alert alert-danger" role="alert">
+            Error al cargar el catálogo de películas. <button id="retryButton" class="btn btn-warning btn-sm ms-2">Reintentar</button>
+          </div>`;
+            document.getElementById('retryButton').addEventListener('click', loadMovies);
+          });
+      };
 
             filteredMovies = moviesData; 
             displayMovies(currentPage, filteredMovies); 
