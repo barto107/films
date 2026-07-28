@@ -170,18 +170,10 @@
  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <script>
-    // Déclaration globale de la fonction du trailer pour qu'elle soit accessible partout
+<script>
+    // Ouvre la bande-annonce directement sur YouTube dans un nouvel onglet pour éviter les blocages d'intégration
     window.openVideoModal = function(videoCode) {
-      const iframe = document.getElementById('youtubeIframe');
-      iframe.src = `https://www.youtube.com/embed/${videoCode}?autoplay=1`;
-      const videoModalEl = document.getElementById('videoModal');
-      const modal = bootstrap.Modal.getOrCreateInstance(videoModalEl);
-      modal.show();
-      
-      videoModalEl.addEventListener('hidden.bs.modal', () => {
-        iframe.src = "";
-      }, { once: true });
+      window.open(`https://www.youtube.com/watch?v=${videoCode}`, '_blank');
     };
 
     // Se utiliza una IIFE (función autoejecutable) para encapsular variables y funciones sin contaminar el ámbito global.
