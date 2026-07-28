@@ -441,7 +441,7 @@
         displayMovies(currentPage, filteredMovies); 
       });
 
- // Fonction pour charger les données de les films depuis un fichier CSV.
+ // Fonction pour charger les données des films depuis un fichier CSV.
       const loadMovies = () => {
         fetch('movies.csv')
           .then(res => {
@@ -451,12 +451,10 @@
           .then(data => {
             moviesData = Papa.parse(data, { header: true, skipEmptyLines: true }).data;
             
-            // Nettoyage automatique de la colonne Comments pour chaque film
+            // Nettoyage simple et sécurisé des espaces et des guillemets
             moviesData.forEach(movie => {
               if (movie['Comments']) {
-                // Ne garde que les caractères valides d'un ID YouTube (lettres, chiffres, tirets, underscores)
-                let cleanId = movie['Comments'].trim().match(/[a-zA-Z0-9_-]{11}/);
-                movie['Comments'] = cleanId ? cleanId[0] : movie['Comments'].trim();
+                movie['Comments'] = movie['Comments'].replace(/['"\r\n]/g, '').trim();
               }
             });
 
