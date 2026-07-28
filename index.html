@@ -167,62 +167,67 @@
       </div>
     </div>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
+    // Déclaration globale de la fonction du trailer pour qu'elle soit accessible partout
+    window.openVideoModal = function(videoCode) {
+      const iframe = document.getElementById('youtubeIframe');
+      iframe.src = `https://www.youtube.com/embed/${videoCode}?autoplay=1`;
+      const videoModalEl = document.getElementById('videoModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(videoModalEl);
+      modal.show();
+      
+      videoModalEl.addEventListener('hidden.bs.modal', () => {
+        iframe.src = "";
+      }, { once: true });
+    };
+
     // Se utiliza una IIFE (función autoejecutable) para encapsular variables y funciones sin contaminar el ámbito global.
     (() => {
-      // Variables globales para almacenar la información y el estado de la aplicación.
-      let moviesData = [];          // Almacena todos los datos de películas cargados desde el CSV.
-      let filteredMovies = [];      // Almacena las películas filtradas según la búsqueda.
-      let currentSortColumn = null; // Columna actual por la que se ordena la lista.
-      let currentSortOrder = 'asc'; // Orden actual: ascendente ('asc') o descendente ('desc').
-      let currentPage = 1;          // Página actual de la paginación.
-      const itemsPerPage = 50;      // Número de películas a mostrar por página.
+      let moviesData = [];          
+      let filteredMovies = [];      
+      let currentSortColumn = null; 
+      let currentSortOrder = 'asc'; 
+      let currentPage = 1;          
+      let itemsPerPage = 50;      
 
-      // Selección de elementos del DOM que se utilizarán para mostrar datos y manejar eventos.
       const tbody = document.querySelector('#moviesTable tbody');
       const searchInput = document.getElementById('searchInput');
       const pagination = document.getElementById('pagination');
 
-      // Función que genera el HTML para representar la calificación en estrellas.
       const getStarRatingHTML = rating => {
-        const r = rating / 2;                     // Convertir la calificación (por ejemplo, de 10 a 5 estrellas).
-        const full = Math.floor(r);               // Número de estrellas completas.
-        const half = r - full >= 0.5 ? 1 : 0;       // Una estrella media si corresponde.
-        const empty = 5 - full - half;              // Número de estrellas vacías para completar 5 estrellas.
-        // Retorna el HTML de los iconos de estrellas usando FontAwesome.
+        const r = rating / 2;             
+        const full = Math.floor(r);               
+        const half = r - full >= 0.5 ? 1 : 0;       
+        const empty = 5 - full - half;              
         return '<i class="fas fa-star text-warning"></i>'.repeat(full) +
           (half ? '<i class="fas fa-star-half-alt text-warning"></i>' : '') +
           '<i class="far fa-star text-warning"></i>'.repeat(empty);
       };
 
-      // Función para mostrar las películas en la tabla según la página actual y la lista filtrada.
       const displayMovies = (page, moviesArray) => {
-        tbody.innerHTML = '';                     // Limpiar el contenido previo de la tabla.
-        const start = (page - 1) * itemsPerPage;    // Calcular el índice de inicio para la paginación.
-        const end = start + itemsPerPage;           // Calcular el índice final para la paginación.
-        const paginatedMovies = moviesArray.slice(start, end); // Obtener el subconjunto de películas a mostrar.
+        tbody.innerHTML = '';                   
+        const start = (page - 1) * itemsPerPage;    
+        const end = start + itemsPerPage;           
+        const paginatedMovies = moviesArray.slice(start, end); 
 
-        // Iterar sobre cada película en la página actual.
         paginatedMovies.forEach((movie, index) => {
-          const absoluteIndex = start + index;      // Índice absoluto en la lista completa.
-          const tr = document.createElement('tr');  // Crear una nueva fila para la película.
+          const absoluteIndex = start + index;      
+          const tr = document.createElement('tr');  
 
-          // Extraer datos de la película utilizando valores predeterminados en caso de ausencia.
           const num = movie['Number'] || '';
           const name = movie['TranslatedTitle'] || '';
           const orig = movie['OriginalTitle'] || '';
           const year = movie['Year'] || '';
           const rating = parseFloat(movie['Rating']) || 0;
           const url = movie['URL'] ? movie['URL'] : '#';
-          // Generar HTML para la calificación: en pantallas pequeñas se muestra como número, en pantallas grandes se muestran estrellas con enlace.
+          
           const ratingHTML = window.innerWidth < 768
             ? rating.toFixed(1)
             : `<a href="${url}" target="_blank" class="rating-link">${getStarRatingHTML(rating)}</a>`;
 
-          // Construir la fila HTML con las celdas correspondientes.
           tr.innerHTML = `
           <td>${num}</td>
           <td><a href="#" class="movie-link" data-index="${absoluteIndex}">${name}</a></td>
@@ -230,20 +235,19 @@
           <td>${year}</td>
           <td>${ratingHTML}</td>
         `;
-          // Evitar que el clic en el enlace de la calificación propague el evento al elemento padre.
+          
           const ratingLink = tr.querySelector('.rating-link');
           if (ratingLink) {
             ratingLink.addEventListener('click', e => {
               e.stopPropagation();
             });
           }
-          // Agregar evento para abrir el modal con la información de la película al hacer clic en la fila.
+          
           tr.addEventListener('click', (e) => {
-            // Si se hizo clic en el enlace del título, se maneja por separado.
             if (e.target.closest('a.movie-link')) return;
             openMovieModal(filteredMovies[absoluteIndex]);
           });
-          // Manejar el clic en el enlace del título para evitar la ejecución doble y abrir el modal.
+          
           const movieLink = tr.querySelector('a.movie-link');
           if (movieLink) {
             movieLink.addEventListener('click', (e) => {
@@ -252,26 +256,22 @@
               openMovieModal(filteredMovies[absoluteIndex]);
             });
           }
-          // Agregar la fila construida al cuerpo de la tabla.
+          
           tbody.appendChild(tr);
         });
-        // Actualizar los controles de paginación según la lista de películas actual.
         updatePagination(moviesArray);
       };
 
-      // Función para actualizar y renderizar los controles de paginación.
       const updatePagination = (moviesArray) => {
-        pagination.innerHTML = '';  // Limpiar los controles de paginación actuales.
-        const totalPages = Math.ceil(moviesArray.length / itemsPerPage); // Calcular el total de páginas.
+        pagination.innerHTML = '';  
+        const totalPages = Math.ceil(moviesArray.length / itemsPerPage); 
 
-        // Ajustar el tamaño de la paginación para dispositivos móviles.
         if (window.innerWidth < 576) {
           pagination.classList.add('pagination-sm');
         } else {
           pagination.classList.remove('pagination-sm');
         }
 
-        // Botón « para retroceder una página.
         const liPrev = document.createElement('li');
         liPrev.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         liPrev.innerHTML = `<a class="page-link" href="#">«</a>`;
@@ -284,7 +284,6 @@
         });
         pagination.appendChild(liPrev);
 
-        // Botón "Inicio" para ir a la primera página.
         const liInicio = document.createElement('li');
         liInicio.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
         liInicio.innerHTML = `<a class="page-link" href="#">Début</a>`;
@@ -297,7 +296,6 @@
         });
         pagination.appendChild(liInicio);
 
-        // Calcular el rango de botones numéricos a mostrar (máximo 5 botones).
         let startPage = Math.max(1, currentPage - 2);
         let endPage = Math.min(totalPages, currentPage + 2);
         if (currentPage <= 3) {
@@ -308,7 +306,6 @@
           startPage = Math.max(1, totalPages - 4);
         }
 
-        // Crear botones numéricos para cada página dentro del rango calculado.
         for (let i = startPage; i <= endPage; i++) {
           const li = document.createElement('li');
           li.className = `page-item ${i === currentPage ? 'active' : ''}`;
@@ -321,7 +318,6 @@
           pagination.appendChild(li);
         }
 
-        // Botón "Fin" para saltar a la última página.
         const liFin = document.createElement('li');
         liFin.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         liFin.innerHTML = `<a class="page-link" href="#">Fin</a>`;
@@ -334,7 +330,6 @@
         });
         pagination.appendChild(liFin);
 
-        // Botón » para avanzar una página.
         const liNext = document.createElement('li');
         liNext.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
         liNext.innerHTML = `<a class="page-link" href="#">»</a>`;
@@ -348,27 +343,21 @@
         pagination.appendChild(liNext);
       };
 
-      // Función para ordenar las películas según la columna especificada.
       const sortMovies = column => {
-        // Alternar el orden de clasificación si se selecciona la misma columna; de lo contrario, ordenar de forma ascendente.
         currentSortOrder = currentSortColumn === column ? (currentSortOrder === 'asc' ? 'desc' : 'asc') : 'asc';
         currentSortColumn = column;
-        // Ordenar el array moviesData basado en la columna indicada.
         moviesData.sort((a, b) => {
           let valA = a[column] || '';
           let valB = b[column] || '';
-          // Para columnas numéricas (Rating, Year, Number) convertir a número y comparar.
           if (['Rating', 'Year', 'Number'].includes(column)) {
             valA = parseFloat(valA) || 0;
             valB = parseFloat(valB) || 0;
             return currentSortOrder === 'asc' ? valA - valB : valB - valA;
           }
-          // Para columnas de texto, comparar en minúsculas para evitar diferencias de mayúsculas/minúsculas.
           return currentSortOrder === 'asc'
             ? valA.toLowerCase().localeCompare(valB.toLowerCase())
             : valB.toLowerCase().localeCompare(valA.toLowerCase());
         });
-        // Reaplicar el filtro de búsqueda en caso de que se esté utilizando uno.
         const term = searchInput.value.toLowerCase();
         filteredMovies = term
           ? moviesData.filter(movie =>
@@ -376,30 +365,26 @@
             (movie['OriginalTitle'] && movie['OriginalTitle'].toLowerCase().includes(term))
           )
           : moviesData;
-        currentPage = 1;       // Reiniciar la paginación a la primera página.
-        updateSortIcons();     // Actualizar los íconos de orden en los encabezados de la tabla.
-        displayMovies(currentPage, filteredMovies); // Mostrar las películas ordenadas y filtradas.
+        currentPage = 1;
+        updateSortIcons();
+        displayMovies(currentPage, filteredMovies);
       };
 
-      // Función para actualizar los íconos de orden en los encabezados de la tabla.
       const updateSortIcons = () => {
         document.querySelectorAll('#moviesTable thead th').forEach(th => {
           const col = th.getAttribute('data-column');
           const icon = th.querySelector('i');
-          // Actualizar el icono: si es la columna ordenada, mostrar ascendente o descendente; de lo contrario, icono neutro.
           icon.className = col === currentSortColumn
             ? (currentSortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down')
             : 'fas fa-sort';
         });
       };
 
-      // Función para abrir el modal que muestra la ficha completa de la película.
       const openMovieModal = movie => {
         const title = movie['TranslatedTitle'] || 'Ficha de la Película';
         const year = movie['Year'] ? ` (${movie['Year']})` : '';
-        // Actualizar el título del modal.
         document.getElementById('movieModalLabel').textContent = title + year;
-        // Construir el contenido HTML del modal con todos los detalles de la película.
+        
         document.querySelector('#movieModal .modal-body').innerHTML = `
         <div class="card movie-card">
           <div class="row g-0">
@@ -442,73 +427,55 @@
             </div>
           </div>
         </div>`;
-        // Mostrar el modal utilizando el componente Modal de Bootstrap.
-        new bootstrap.Modal(document.getElementById('movieModal')).show();
-      };
-
-      // Función global para abrir el modal que muestra un video (tráiler) de YouTube.
-      window.openVideoModal = videoCode => {
-        const iframe = document.getElementById('youtubeIframe');
-        // Configurar la URL del iframe para reproducir el video con autoplay.
-        iframe.src = `https://www.youtube.com/embed/${videoCode}?autoplay=1`;
-        const modal = new bootstrap.Modal(document.getElementById('videoModal'));
+        
+        const movieModalEl = document.getElementById('movieModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(movieModalEl);
         modal.show();
-        // Al fermer el modal, reiniciar la URL del iframe para detener el video.
-        document.getElementById('videoModal').addEventListener('hidden.bs.modal', () => iframe.src = "", { once: true });
       };
 
-      // Agregar eventos de clic a los encabezados de la tabla para ordenar las películas.
       document.querySelectorAll('#moviesTable thead th').forEach(th =>
         th.addEventListener('click', () => sortMovies(th.getAttribute('data-column')))
       );
 
-      // Evento para la búsqueda en tiempo real. Cada vez que se escribe en el input se filtra la lista de películas.
       searchInput.addEventListener('keyup', () => {
-        const term = searchInput.value.toLowerCase(); // Convertir el término de búsqueda a minúsculas.
+        const term = searchInput.value.toLowerCase(); 
         filteredMovies = term
           ? moviesData.filter(movie =>
             (movie['TranslatedTitle'] && movie['TranslatedTitle'].toLowerCase().includes(term)) ||
             (movie['OriginalTitle'] && movie['OriginalTitle'].toLowerCase().includes(term))
           )
           : moviesData;
-        currentPage = 1; // Reiniciar la paginación a la primera página.
-        displayMovies(currentPage, filteredMovies); // Actualizar la tabla con el filtro aplicado.
+        currentPage = 1; 
+        displayMovies(currentPage, filteredMovies); 
       });
 
-      // Función para cargar los datos de las películas desde un archivo CSV.
       const loadMovies = () => {
         fetch('movies.csv')
           .then(res => {
-            // Verificar que la respuesta de la red sea correcta.
             if (!res.ok) throw new Error('Network response was not ok');
             return res.text();
           })
           .then(data => {
-            // Parsear el CSV usando PapaParse; se utiliza la primera línea como encabezados y se omiten líneas vacías.
             moviesData = Papa.parse(data, { header: true, skipEmptyLines: true }).data;
-            filteredMovies = moviesData; // Inicialmente, no se aplica ningún filtro.
-            displayMovies(currentPage, filteredMovies); // Mostrar las películas en la tabla.
+            filteredMovies = moviesData; 
+            displayMovies(currentPage, filteredMovies); 
           })
           .catch(error => {
-            // Manejar errores en la carga del archivo CSV.
             console.error(error);
             const container = document.querySelector('.container');
             container.innerHTML = `<div class="alert alert-danger" role="alert">
             Error al cargar el catálogo de películas. <button id="retryButton" class="btn btn-warning btn-sm ms-2">Reintentar</button>
           </div>`;
-            // Agregar evento para reintentar la carga al hacer clic en el botón "Reintentar".
             document.getElementById('retryButton').addEventListener('click', loadMovies);
           });
       };
 
-      // Iniciar la carga de las películas cuando la aplicación se carga.
       loadMovies();
 
-      // Ajustar la paginación cuando cambia el tamaño de la ventana (para soporte responsive).
       window.addEventListener('resize', () => {
         updatePagination(filteredMovies);
       });
-    })(); // Fin de la IIFE.
+    })(); 
   </script>
 </body>
 
